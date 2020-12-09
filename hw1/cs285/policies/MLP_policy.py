@@ -78,9 +78,12 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         if len(obs.shape) > 1:
             observation = obs
         else:
-            observation = obs[None]
+            observation = obs[None] # What does this mean?
 
-        # TODO return the action that the policy prescribes
+        # TODO return the action that the policy prescribes √?
+        observation = ptu.from_numpy(observation.astype(np.float32))
+        action = self(observation)
+        return ptu.to_numpy(action)
         raise NotImplementedError
 
     # update/train this policy
