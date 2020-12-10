@@ -10,7 +10,8 @@ from cs285.policies.MLP_policy import MLPPolicy
 def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
 
     # initialize env for the beginning of a new rollout
-    ob = TODO # HINT: should be the output of resetting the env
+    # ob = TODO # HINT: should be the output of resetting the env √
+    ob = env.reset()
 
     # init vars
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []

@@ -81,9 +81,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None] # What does this mean?
 
         # TODO return the action that the policy prescribes √?
-        observation = ptu.from_numpy(observation.astype(np.float32))
-        action = self(observation)
-        return ptu.to_numpy(action)
+        # observation = ptu.from_numpy(observation.astype(np.float32))
+        # action = self(observation)
+        # return ptu.to_numpy(action)
+        return self.logits_na(observation)
         raise NotImplementedError
 
     # update/train this policy
@@ -112,7 +113,10 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        loss = TODO
+        loss = self.loss(super.get_action(observations), actions)
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
         return {
             # You can add extra logging information here, but keep this line
             'Training Loss': ptu.to_numpy(loss),
