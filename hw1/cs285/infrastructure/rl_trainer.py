@@ -5,7 +5,11 @@ import time
 import gym
 import torch
 
+import pickle
+
 from cs285 import agents
+from cs285.agents import bc_agent
+from cs285.agents.bc_agent import BCAgent
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.infrastructure.logger import Logger
 from cs285.infrastructure import utils
@@ -163,7 +167,10 @@ class RL_Trainer(object):
 
                 # (2) collect `self.params['batch_size']` transitions
         if itr == 0:
-            return load_initial_expertdata, 0, None
+            file = open(load_initial_expertdata, 'rb')
+            loaded_paths = pickle.load(file)
+            file.close()
+            return loaded_paths, 0, None
 
         # TODO collect `batch_size` samples to be used for training √
         # HINT1: use sample_trajectories from utils
@@ -190,12 +197,13 @@ class RL_Trainer(object):
             # TODO sample some data from the data buffer √
             # HINT1: use the agent's sample function
             # HINT2: how much data = self.params['train_batch_size']
-            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch = agents.BCAgent.sample(self.params['train_batch_size'])
+            ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch \
+                = self.agent.sample(self.params['train_batch_size'])
 
             # TODO use the sampled data to train an agent √
             # HINT: use the agent's train function
             # HINT: keep the agent's training log for debugging
-            train_log = agents.BCAgent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
+            train_log = self.agent.train(ob_batch, ac_batch, re_batch, next_ob_batch, terminal_batch)
             all_logs.append(train_log)
         return all_logs
 
