@@ -84,10 +84,11 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # observation = ptu.from_numpy(observation.astype(np.float32))
         # action = self(observation)
         # return ptu.to_numpy(action)
-        if self.discrete:
-            return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
-        else:
-            return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
+        # if self.discrete:
+        #     return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
+        # else:
+        #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
+        return ptu.to_numpy(self.forward(torch.from_numpy(observation).float()).sample())
         raise NotImplementedError
 
     # update/train this policy
@@ -100,6 +101,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # return more flexible objects, such as a
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
+        if self.discrete:
+            return torch.distributions.categorical.Categorical(self.logits_na(observation))
+        else:
+            return torch.distributions.normal.Normal(self.mean_net(observation), self.logstd)
         raise NotImplementedError
 
 
