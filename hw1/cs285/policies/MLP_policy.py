@@ -89,6 +89,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # else:
         #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
         return ptu.to_numpy(self.forward(torch.from_numpy(observation).float()).sample())
+        # mean, _ = self.forward(torch.from_numpy(observation).float())
+        # return ptu.to_numpy(mean)
         raise NotImplementedError
 
     # update/train this policy
@@ -103,8 +105,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     def forward(self, observation: torch.FloatTensor) -> Any:
         if self.discrete:
             return torch.distributions.categorical.Categorical(self.logits_na(observation))
+            # return self.logits_na(observation)
         else:
             return torch.distributions.normal.Normal(self.mean_net(observation), self.logstd)
+            # return self.mean_net(observation), self.logstd
         raise NotImplementedError
 
 
@@ -122,14 +126,32 @@ class MLPPolicySL(MLPPolicy):
     ):
         # TODO: update the policy and return the loss
         # obs = torch.from_numpy(MLPPolicy.get_action(self, observations))
-        obs = MLPPolicy.forward(self, torch.from_numpy(observations).float()).sample()
-        obs.requires_grad = True
+        # obs = MLPPolicy.forward(self, torch.from_numpy(observations).float()).sample()
+        # distribution = self.mean_net(observations) + Normal(torch.tensor([0.0]), torch.tensor([1.0])) * self.logstd
+        # if self.discrete:
+        #     distribution = MLPPolicy.forward(self, torch.from_numpy(observations).float())
+        # else:
+        #     mean, std = MLPPolicy.forward(self, torch.from_numpy(observations).float())
+        #     print("1: ", mean.shape)
+        #     print("2: ", self.ac_dim)
+        #     print("3: ", std.shape)
+        #     sampled_action = mean + torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([1.0])).sample(mean.shape) * torch.exp(std)
+
+        # obs = distribution.sample()
+        # sampled_action.requires_grad = True
         acs = torch.from_numpy(actions)
-        acs.requires_grad = True
-        loss = self.loss(obs, acs)
+        sampled_action = MLPPolicy.forward(self, torch.from_numpy(observations).float()).rsample(acs.shape)
+        # acs.requires_grad = True
+        loss = self.loss(sampled_action, acs)
         self.optimizer.zero_grad()
         loss.backward()
-        # print(obs.grad.data) # added
+        # added
+        # if self.discrete:
+        #     for param in self.logits_na.parameters():
+        #         print(param.grad) 
+        # else:
+        #     for param in self.mean_net.parameters():
+        #         print(param.grad) 
         self.optimizer.step()
         
         return {

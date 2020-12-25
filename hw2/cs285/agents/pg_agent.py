@@ -90,8 +90,8 @@ class PGAgent(BaseAgent):
             ## baseline was trained with standardized q_values, so ensure that the predictions
             ## have the same mean and standard deviation as the current batch of q_values
             baselines = baselines_unnormalized * np.std(q_values) + np.mean(q_values)
-            ## TODO: compute advantage estimates using q_values and baselines
-            advantages = TODO
+            ## TODO: compute advantage estimates using q_values and baselines √
+            advantages = q_values - baselines
 
         # Else, just set the advantage to [Q]
         else:
@@ -99,10 +99,10 @@ class PGAgent(BaseAgent):
 
         # Normalize the resulting advantages
         if self.standardize_advantages:
-            ## TODO: standardize the advantages to have a mean of zero
+            ## TODO: standardize the advantages to have a mean of zero √
             ## and a standard deviation of one
-            ## HINT: there is a `normalize` function in `infrastructure.utils`
-            advantages = TODO
+            ## HINT: there is a `normalize` function in `infrastructure.utils` 
+            advantages = utils.normalize(advantages, 0.0, 1.0)
 
         return advantages
 
@@ -128,9 +128,13 @@ class PGAgent(BaseAgent):
             Output: list where each index t contains sum_{t'=0}^T gamma^t' r_{t'}
         """
 
-        # TODO: create list_of_discounted_returns
+        # TODO: create list_of_discounted_returns √
         # Hint: note that all entries of this output are equivalent
             # because each sum is from 0 to T (and doesnt involve t)
+        sum_of_discounted_rewards = 0
+        for index, value in enumerate(rewards):
+            sum_of_discounted_rewards += (self.gamma ** index) * value
+        list_of_discounted_returns = [sum_of_discounted_rewards for _ in range(len(rewards))]
 
         return list_of_discounted_returns
 
@@ -141,11 +145,16 @@ class PGAgent(BaseAgent):
             -and returns a list where the entry in each index t' is sum_{t'=t}^T gamma^(t'-t) * r_{t'}
         """
 
-        # TODO: create `list_of_discounted_returns`
+        # TODO: create `list_of_discounted_returns` √
         # HINT1: note that each entry of the output should now be unique,
             # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
             # using a for loop is also fine
+        T = len(rewards)
+        list_of_discounted_cumsums = [0] * T
+        for t in range(T):
+            for t_prime in range(t, T):
+                list_of_discounted_cumsums[t] += (self.gamma ** (t_prime - t)) * rewards[t_prime]
 
         return list_of_discounted_cumsums
 

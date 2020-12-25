@@ -90,9 +90,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         if len(obs.shape) > 1:
             observation = obs
         else:
-            observation = obs[None]  # What does this mean?
+            observation = obs[None]
 
-        # TODO return the action that the policy prescribes √?
+        # TODO return the action that the policy prescribes √
         # observation = ptu.from_numpy(observation.astype(np.float32))
         # action = self(observation)
         # return ptu.to_numpy(action)
@@ -114,9 +114,9 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     def forward(self, observation: torch.FloatTensor):
         # TODO: get this from hw1 √
         if self.discrete:
-            return torch.distributions.categorical.Categorical(self.logits_na(observation))
+            return Categorical(self.logits_na(observation))
         else:
-            return torch.distributions.normal.Normal(self.mean_net(observation), self.logstd)
+            return Normal(self.mean_net(observation), self.logstd)
         # return action_distribution
 
 
@@ -141,12 +141,17 @@ class MLPPolicyPG(MLPPolicy):
         # HINT2: you will want to use the `log_prob` method on the distribution returned
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
-
-        loss = TODO
-
+        
+        distribution = MLPPolicy.forward(observations)
+        predictions = distribution.sample()
+        log_distribution = distribution.log_prob(predictions)
+        loss = self.baseline_loss(torch.mul(log_distribution, advantages)).mul(-1) #where to use actions?
+       
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
-        TODO
+        self.optimizer.zero_grad()
+        loss.backward()
+        self.optimizer.step()
 
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one
