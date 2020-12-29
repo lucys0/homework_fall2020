@@ -3,9 +3,11 @@ import numpy as np
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
 from cs285.infrastructure.replay_buffer import ReplayBuffer
+from ..infrastructure import utils
 
 
 class PGAgent(BaseAgent):
+
     def __init__(self, env, agent_params):
         super(PGAgent, self).__init__()
 
@@ -44,9 +46,9 @@ class PGAgent(BaseAgent):
         # step 2: calculate advantages that correspond to each (s_t, a_t) point
         advantages = self.estimate_advantage(observations, q_values)
 
-        # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy
+        # TODO: step 3: use all datapoints (s_t, a_t, q_t, adv_t) to update the PG actor/policy √
         ## HINT: `train_log` should be returned by your actor update method
-        train_log = TODO
+        train_log = self.actor.update(observations, actions, advantages, q_values)
 
         return train_log
 

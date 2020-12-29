@@ -1,6 +1,7 @@
 import abc
 import itertools
 from torch import nn
+from torch.distributions import Categorical, Normal
 from torch.nn import functional as F
 from torch import optim
 
@@ -96,10 +97,15 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # observation = ptu.from_numpy(observation.astype(np.float32))
         # action = self(observation)
         # return ptu.to_numpy(action)
-        if self.discrete:
-            return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
-        else:
-            return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
+        # if self.discrete:
+        #     return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
+        # else:
+        #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
+        # print("----", observation, "----")
+        action_space = self.forward(torch.FloatTensor(observation))
+        # torch.clamp(action_space, min=0)
+        # print("----", action_space, "----")
+        return ptu.to_numpy(action_space.sample())
         raise NotImplementedError
 
     # update/train this policy
@@ -143,9 +149,9 @@ class MLPPolicyPG(MLPPolicy):
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
         
         distribution = MLPPolicy.forward(observations)
-        predictions = distribution.sample()
-        log_distribution = distribution.log_prob(predictions)
-        loss = self.baseline_loss(torch.mul(log_distribution, advantages)).mul(-1) #where to use actions?
+        sampled_actions = distribution.rsample()
+        log_distribution = distribution.log_prob(sampled_actions)
+        loss = -1 * torch.mean(torch.mul(log_distribution, advantages)) # where to use actions?
        
         # TODO: optimize `loss` using `self.optimizer`
         # HINT: remember to `zero_grad` first
