@@ -140,7 +140,9 @@ class MLPPolicySL(MLPPolicy):
         # obs = distribution.sample()
         # sampled_action.requires_grad = True
         acs = torch.from_numpy(actions)
-        sampled_action = MLPPolicy.forward(self, torch.from_numpy(observations).float()).rsample(acs.shape)
+        # print("acs: ", ptu.to_numpy(acs)[0])
+        sampled_action = MLPPolicy.forward(self, torch.from_numpy(observations).float()).rsample()
+        # print("sampled_action: ", ptu.to_numpy(sampled_action)[0])
         # acs.requires_grad = True
         loss = self.loss(sampled_action, acs)
         self.optimizer.zero_grad()
