@@ -116,7 +116,7 @@ class RL_Trainer(object):
             )  # HW1: implement this function below
             paths, envsteps_this_batch, train_video_paths = training_returns
             self.total_envsteps += envsteps_this_batch
-
+            # print('----', paths, '----')
             # relabel the collected obs with actions from a provided expert policy
             if relabel_with_expert and itr>=start_relabel_with_expert:
                 paths = self.do_relabel_with_expert(expert_policy, paths)  # HW1: implement this function below
@@ -176,7 +176,10 @@ class RL_Trainer(object):
         # HINT1: use sample_trajectories from utils
         # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
         print("\nCollecting data to be used for training...")
-        paths, envsteps_this_batch = utils.sample_trajectories(self.env, collect_policy, batch_size, self.params['ep_len'])
+        # paths, envsteps_this_batch = utils.sample_trajectories(self.env, collect_policy, batch_size, self.params['ep_len'])
+        paths = utils.sample_n_trajectories(self.env, collect_policy, batch_size // self.params['ep_len'], self.params['ep_len'])
+            # why can't i use batch_size as min_timesteps_per_batch?
+        envsteps_this_batch = sum(utils.get_pathlength(path) for path in paths)
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
         # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
@@ -213,8 +216,9 @@ class RL_Trainer(object):
         # TODO relabel collected obsevations (from our policy) with labels from an expert policy √
         # HINT: query the policy (using the get_action function) with paths[i]["observation"]
         # and replace paths[i]["action"] with these expert labels
-        for i in range(len(paths)):
-            paths[i]["action"] = expert_policy.get_action(paths[i]["observation"])
+        for path in paths:
+            for t, observation in enumerate(path['observation']):
+                path['action'][t] = expert_policy.get_action(observation)
 
         return paths
 
@@ -242,8 +246,15 @@ class RL_Trainer(object):
         # save eval metrics
         if self.log_metrics:
             # returns, for logging
+            # for path in paths:
+            #     print(path["reward"])
+            # print('-----')
+            # for eval_path in eval_paths:
+            #     print(eval_path["reward"])
             train_returns = [path["reward"].sum() for path in paths]
             eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
+            # print('----eval_returns: ', eval_returns)
+            # print('----train_returns: ', train_returns)
 
             # episode lengths, for logging
             train_ep_lens = [len(path["reward"]) for path in paths]

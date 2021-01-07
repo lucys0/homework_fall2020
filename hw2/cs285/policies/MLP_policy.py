@@ -102,7 +102,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         # else:
         #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
         # print("----", observation, "----")
-        action_space = self.forward(torch.FloatTensor(observation))
+        action_space = self.forward(ptu.from_numpy(observation))
         # torch.clamp(action_space, min=0)
         # print("----", action_space, "----")
         return ptu.to_numpy(action_space.sample())
@@ -122,7 +122,8 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         if self.discrete:
             return Categorical(logits=self.logits_na(observation))
         else:
-            return Normal(self.mean_net(observation), self.logstd)
+            assert self.logstd is not None
+            return Normal(self.mean_net(observation), torch.exp(self.logstd)[None]) # this works, but what does it mean?
         # return action_distribution
 
 
@@ -137,7 +138,7 @@ class MLPPolicyPG(MLPPolicy):
 
     def update(self, observations, actions, advantages, q_values=None):
         observations = ptu.from_numpy(observations)
-        actions = ptu.from_numpy(actions) # where to use this??
+        actions = ptu.from_numpy(actions)
         advantages = ptu.from_numpy(advantages)
 
         # TODO: compute the loss that should be optimized when training with policy gradient √
@@ -148,10 +149,20 @@ class MLPPolicyPG(MLPPolicy):
             # by the `forward` method
         # HINT3: don't forget that `optimizer.step()` MINIMIZES a loss
         
-        distribution = self.forward(observations.float())
-        sampled_actions = distribution.sample()
-        log_distribution = distribution.log_prob(sampled_actions)
-        loss = - (log_distribution * advantages).mean()
+        # print('observations: ', observations)
+        distribution = self.forward(observations)
+        # print('distribution: ', distribution)
+        # sampled_actions = distribution.sample()
+        # print('sampled_actions: ', sampled_actions)
+        # log_distribution = distribution.log_prob(sampled_actions)
+        log_distribution: torch.Tensor = distribution.log_prob(actions)
+        # print('log_distribution: ', log_distribution)
+        if not self.discrete:
+            log_distribution = log_distribution.sum(1) # to fix the dimension problem
+        # print('----log_distribution: ', log_distribution)
+        # print('----advantages: ', advantages)
+        assert log_distribution.size() == advantages.size()
+        loss = - (log_distribution * advantages).sum()
        
         # TODO: optimize `loss` using `self.optimizer` √
         # HINT: remember to `zero_grad` first
@@ -162,17 +173,17 @@ class MLPPolicyPG(MLPPolicy):
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one √
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            targets = utils.normalize(q_values, 0, 1)
+            targets = utils.normalize(q_values, 0.0, 1.0)
             targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions √
-            baseline_predictions = self.baseline(observations.float())
+            baseline_predictions: torch.Tensor = self.baseline(observations).squeeze()
             
             ## avoid any subtle broadcasting bugs that can arise when dealing with arrays of shape
             ## [ N ] versus shape [ N x 1 ]
             ## HINT: you can use `squeeze` on torch tensors to remove dimensions of size 1
-            baseline_predictions = torch.squeeze(baseline_predictions)
-            targets = torch.squeeze(targets)
+            # baseline_predictions = torch.squeeze(baseline_predictions)
+            # targets = torch.squeeze(targets)
             assert baseline_predictions.shape == targets.shape
             
             # TODO: compute the loss that should be optimized for training the baseline MLP (`self.baseline`)
@@ -187,7 +198,9 @@ class MLPPolicyPG(MLPPolicy):
 
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
+            # 'Baseline Loss': ptu.to_numpy(baseline_loss),
         }
+        # train_log['Baseline Loss'] = ptu.to_numpy(baseline_loss)
         return train_log
 
     def run_baseline_prediction(self, obs):

@@ -88,7 +88,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
         #     return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
         # else:
         #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
-        return ptu.to_numpy(self.forward(torch.from_numpy(observation).float()).sample())
+        return ptu.to_numpy(self.forward(ptu.from_numpy(observation)).rsample())
+        # observation = ptu.from_numpy(observation.astype(np.float32))
+        # action = self(observation).rsample()
+        # return ptu.to_numpy(action)
         # mean, _ = self.forward(torch.from_numpy(observation).float())
         # return ptu.to_numpy(mean)
         raise NotImplementedError
@@ -104,10 +107,10 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
     # `torch.distributions.Distribution` object. It's up to you!
     def forward(self, observation: torch.FloatTensor) -> Any:
         if self.discrete:
-            return torch.distributions.categorical.Categorical(self.logits_na(observation))
+            return torch.distributions.categorical.Categorical(logits=self.logits_na(observation))
             # return self.logits_na(observation)
         else:
-            return torch.distributions.normal.Normal(self.mean_net(observation), self.logstd)
+            return torch.distributions.normal.Normal(self.mean_net(observation), torch.exp(self.logstd)[None])
             # return self.mean_net(observation), self.logstd
         raise NotImplementedError
 
@@ -139,12 +142,16 @@ class MLPPolicySL(MLPPolicy):
 
         # obs = distribution.sample()
         # sampled_action.requires_grad = True
-        acs = torch.from_numpy(actions)
+        actions = ptu.from_numpy(actions)
         # print("acs: ", ptu.to_numpy(acs)[0])
-        sampled_action = MLPPolicy.forward(self, torch.from_numpy(observations).float()).rsample()
+        observations = ptu.from_numpy(observations)
+        # sampled_action = MLPPolicy.forward(self, ptu.from_numpy(observations)).rsample()
+        action_distribution = self(observations)
         # print("sampled_action: ", ptu.to_numpy(sampled_action)[0])
         # acs.requires_grad = True
-        loss = self.loss(sampled_action, acs)
+        # loss = self.loss(sampled_action, acs)
+        loss = self.loss(action_distribution.rsample(), actions)
+        # loss = -action_distribution.log_prob(actions).mean() # why is the loss defined this way instead of self.loss(sampled_action, acs)?
         self.optimizer.zero_grad()
         loss.backward()
         # added
