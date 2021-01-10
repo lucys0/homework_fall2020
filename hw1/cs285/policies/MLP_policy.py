@@ -128,39 +128,13 @@ class MLPPolicySL(MLPPolicy):
             adv_n=None, acs_labels_na=None, qvals=None
     ):
         # TODO: update the policy and return the loss
-        # obs = torch.from_numpy(MLPPolicy.get_action(self, observations))
-        # obs = MLPPolicy.forward(self, torch.from_numpy(observations).float()).sample()
-        # distribution = self.mean_net(observations) + Normal(torch.tensor([0.0]), torch.tensor([1.0])) * self.logstd
-        # if self.discrete:
-        #     distribution = MLPPolicy.forward(self, torch.from_numpy(observations).float())
-        # else:
-        #     mean, std = MLPPolicy.forward(self, torch.from_numpy(observations).float())
-        #     print("1: ", mean.shape)
-        #     print("2: ", self.ac_dim)
-        #     print("3: ", std.shape)
-        #     sampled_action = mean + torch.distributions.normal.Normal(torch.tensor([0.0]), torch.tensor([1.0])).sample(mean.shape) * torch.exp(std)
-
-        # obs = distribution.sample()
-        # sampled_action.requires_grad = True
         actions = ptu.from_numpy(actions)
-        # print("acs: ", ptu.to_numpy(acs)[0])
         observations = ptu.from_numpy(observations)
-        # sampled_action = MLPPolicy.forward(self, ptu.from_numpy(observations)).rsample()
         action_distribution = self(observations)
-        # print("sampled_action: ", ptu.to_numpy(sampled_action)[0])
-        # acs.requires_grad = True
-        # loss = self.loss(sampled_action, acs)
         loss = self.loss(action_distribution.rsample(), actions)
-        # loss = -action_distribution.log_prob(actions).mean() # why is the loss defined this way instead of self.loss(sampled_action, acs)?
+        
         self.optimizer.zero_grad()
         loss.backward()
-        # added
-        # if self.discrete:
-        #     for param in self.logits_na.parameters():
-        #         print(param.grad) 
-        # else:
-        #     for param in self.mean_net.parameters():
-        #         print(param.grad) 
         self.optimizer.step()
         
         return {

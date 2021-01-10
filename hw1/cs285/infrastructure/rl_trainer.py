@@ -176,9 +176,7 @@ class RL_Trainer(object):
         # HINT1: use sample_trajectories from utils
         # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
         print("\nCollecting data to be used for training...")
-        # paths, envsteps_this_batch = utils.sample_trajectories(self.env, collect_policy, batch_size, self.params['ep_len'])
         paths = utils.sample_n_trajectories(self.env, collect_policy, batch_size // self.params['ep_len'], self.params['ep_len'])
-            # why can't i use batch_size as min_timesteps_per_batch?
         envsteps_this_batch = sum(utils.get_pathlength(path) for path in paths)
 
         # collect more rollouts with the same policy, to be saved as videos in tensorboard
@@ -245,16 +243,8 @@ class RL_Trainer(object):
 
         # save eval metrics
         if self.log_metrics:
-            # returns, for logging
-            # for path in paths:
-            #     print(path["reward"])
-            # print('-----')
-            # for eval_path in eval_paths:
-            #     print(eval_path["reward"])
             train_returns = [path["reward"].sum() for path in paths]
             eval_returns = [eval_path["reward"].sum() for eval_path in eval_paths]
-            # print('----eval_returns: ', eval_returns)
-            # print('----train_returns: ', train_returns)
 
             # episode lengths, for logging
             train_ep_lens = [len(path["reward"]) for path in paths]

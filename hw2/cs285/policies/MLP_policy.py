@@ -173,7 +173,7 @@ class MLPPolicyPG(MLPPolicy):
         if self.nn_baseline:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one √
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            targets = utils.normalize(q_values, 0.0, 1.0)
+            targets = utils.normalize(q_values, np.mean(q_values), np.std(q_values))
             targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions √

@@ -104,7 +104,8 @@ class PGAgent(BaseAgent):
             ## TODO: standardize the advantages to have a mean of zero √
             ## and a standard deviation of one
             ## HINT: there is a `normalize` function in `infrastructure.utils` 
-            advantages = utils.normalize(advantages, 0.0, 1.0)
+            # advantages = utils.normalize(advantages, 0.0, 1.0)
+            advantages = utils.normalize(advantages, np.mean(advantages), np.std(advantages))
 
         return advantages
 
@@ -140,6 +141,13 @@ class PGAgent(BaseAgent):
 
         return list_of_discounted_returns
 
+        # alternative:
+        # discounted_return = functools.reduce(
+        #     lambda ret, reward: ret * self.gamma + reward,
+        #     reversed(rewards),
+        # )
+        # return [discounted_return] * len(rewards)
+
     def _discounted_cumsum(self, rewards):
         """
             Helper function which
@@ -159,4 +167,10 @@ class PGAgent(BaseAgent):
                 list_of_discounted_cumsums[t] += (self.gamma ** (t_prime - t)) * rewards[t_prime]
 
         return list_of_discounted_cumsums
+
+        # alternative: 
+        # return list(accumulate(
+        #     reversed(rewards),
+        #     lambda ret, reward: ret * self.gamma + reward,
+        # ))[::-1]
 
