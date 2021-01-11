@@ -1,4 +1,6 @@
 import numpy as np
+import itertools
+import functools
 
 from .base_agent import BaseAgent
 from cs285.policies.MLP_policy import MLPPolicyPG
@@ -134,19 +136,19 @@ class PGAgent(BaseAgent):
         # TODO: create list_of_discounted_returns √
         # Hint: note that all entries of this output are equivalent
             # because each sum is from 0 to T (and doesnt involve t)
-        sum_of_discounted_rewards = 0
-        for index, value in enumerate(rewards):
-            sum_of_discounted_rewards += (self.gamma ** index) * value
-        list_of_discounted_returns = [sum_of_discounted_rewards for _ in range(len(rewards))]
+        # sum_of_discounted_rewards = 0
+        # for index, value in enumerate(rewards):
+        #     sum_of_discounted_rewards += (self.gamma ** index) * value
+        # list_of_discounted_returns = [sum_of_discounted_rewards for _ in range(len(rewards))]
 
-        return list_of_discounted_returns
+        # return list_of_discounted_returns
 
         # alternative:
-        # discounted_return = functools.reduce(
-        #     lambda ret, reward: ret * self.gamma + reward,
-        #     reversed(rewards),
-        # )
-        # return [discounted_return] * len(rewards)
+        discounted_return = functools.reduce(
+            lambda ret, reward: ret * self.gamma + reward,
+            reversed(rewards),
+        )
+        return [discounted_return] * len(rewards)
 
     def _discounted_cumsum(self, rewards):
         """
@@ -160,17 +162,17 @@ class PGAgent(BaseAgent):
             # because the summation happens over [t, T] instead of [0, T]
         # HINT2: it is possible to write a vectorized solution, but a solution
             # using a for loop is also fine
-        T = len(rewards)
-        list_of_discounted_cumsums = [0] * T
-        for t in range(T):
-            for t_prime in range(t, T):
-                list_of_discounted_cumsums[t] += (self.gamma ** (t_prime - t)) * rewards[t_prime]
+        # T = len(rewards)
+        # list_of_discounted_cumsums = [0] * T
+        # for t in range(T):
+        #     for t_prime in range(t, T):
+        #         list_of_discounted_cumsums[t] += (self.gamma ** (t_prime - t)) * rewards[t_prime]
 
-        return list_of_discounted_cumsums
+        # return list_of_discounted_cumsums
 
         # alternative: 
-        # return list(accumulate(
-        #     reversed(rewards),
-        #     lambda ret, reward: ret * self.gamma + reward,
-        # ))[::-1]
+        return list(itertools.accumulate(
+            reversed(rewards),
+            lambda ret, reward: ret * self.gamma + reward,
+        ))[::-1]
 

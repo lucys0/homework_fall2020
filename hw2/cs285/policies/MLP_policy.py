@@ -94,17 +94,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             observation = obs[None]
 
         # TODO return the action that the policy prescribes √
-        # observation = ptu.from_numpy(observation.astype(np.float32))
-        # action = self(observation)
-        # return ptu.to_numpy(action)
-        # if self.discrete:
-        #     return ptu.to_numpy(self.logits_na(torch.from_numpy(observation).float()))
-        # else:
-        #     return ptu.to_numpy(self.mean_net(torch.from_numpy(observation).float()))
-        # print("----", observation, "----")
         action_space = self.forward(ptu.from_numpy(observation))
-        # torch.clamp(action_space, min=0)
-        # print("----", action_space, "----")
         return ptu.to_numpy(action_space.sample())
         raise NotImplementedError
 
@@ -123,7 +113,7 @@ class MLPPolicy(BasePolicy, nn.Module, metaclass=abc.ABCMeta):
             return Categorical(logits=self.logits_na(observation))
         else:
             assert self.logstd is not None
-            return Normal(self.mean_net(observation), torch.exp(self.logstd)[None]) # this works, but what does it mean?
+            return Normal(self.mean_net(observation), torch.exp(self.logstd)[None])
         # return action_distribution
 
 
@@ -151,16 +141,9 @@ class MLPPolicyPG(MLPPolicy):
         
         # print('observations: ', observations)
         distribution = self.forward(observations)
-        # print('distribution: ', distribution)
-        # sampled_actions = distribution.sample()
-        # print('sampled_actions: ', sampled_actions)
-        # log_distribution = distribution.log_prob(sampled_actions)
         log_distribution: torch.Tensor = distribution.log_prob(actions)
-        # print('log_distribution: ', log_distribution)
         if not self.discrete:
             log_distribution = log_distribution.sum(1) # to fix the dimension problem
-        # print('----log_distribution: ', log_distribution)
-        # print('----advantages: ', advantages)
         assert log_distribution.size() == advantages.size()
         loss = - (log_distribution * advantages).sum()
        
@@ -170,10 +153,10 @@ class MLPPolicyPG(MLPPolicy):
         loss.backward()
         self.optimizer.step()
 
-        if self.nn_baseline:
+        if self.nn_baseline and q_values is not None:
             ## TODO: normalize the q_values to have a mean of zero and a standard deviation of one √
             ## HINT: there is a `normalize` function in `infrastructure.utils`
-            targets = utils.normalize(q_values, np.mean(q_values), np.std(q_values))
+            targets = utils.normalize(q_values, q_values.mean(), q_values.std())
             targets = ptu.from_numpy(targets)
 
             ## TODO: use the `forward` method of `self.baseline` to get baseline predictions √
@@ -182,8 +165,6 @@ class MLPPolicyPG(MLPPolicy):
             ## avoid any subtle broadcasting bugs that can arise when dealing with arrays of shape
             ## [ N ] versus shape [ N x 1 ]
             ## HINT: you can use `squeeze` on torch tensors to remove dimensions of size 1
-            # baseline_predictions = torch.squeeze(baseline_predictions)
-            # targets = torch.squeeze(targets)
             assert baseline_predictions.shape == targets.shape
             
             # TODO: compute the loss that should be optimized for training the baseline MLP (`self.baseline`)
@@ -198,7 +179,7 @@ class MLPPolicyPG(MLPPolicy):
 
         train_log = {
             'Training Loss': ptu.to_numpy(loss),
-            # 'Baseline Loss': ptu.to_numpy(baseline_loss),
+            'Baseline Loss': ptu.to_numpy(baseline_loss),
         }
         # train_log['Baseline Loss'] = ptu.to_numpy(baseline_loss)
         return train_log
