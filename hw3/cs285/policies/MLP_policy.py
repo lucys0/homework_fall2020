@@ -7,6 +7,7 @@ from torch import optim
 import numpy as np
 import torch
 from torch import distributions
+from torch.distributions import Categorical, Normal
 
 from cs285.infrastructure import pytorch_util as ptu
 from cs285.policies.base_policy import BasePolicy
@@ -123,10 +124,10 @@ class MLPPolicyAC(MLPPolicy):
         # TODO: update the policy and return the loss ?
         observations = ptu.from_numpy(observations)
         actions = ptu.from_numpy(actions)
-        advantages = ptu.from_numpy(adv_n)
+        adv_n = ptu.from_numpy(adv_n)
 
         distribution = self.forward(observations)
-        log_distribution: torch.Tensor = distribution.log_prob(actions)
+        log_distribution = distribution.log_prob(actions)
         if not self.discrete:
             log_distribution = log_distribution.sum(1) # to fix the dimension problem
         assert log_distribution.size() == adv_n.size()

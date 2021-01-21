@@ -211,22 +211,22 @@ class RL_Trainer(object):
             train_video_paths: paths which also contain videos for visualization purposes
         """
         # TODO: get this from Piazza √
-        if itr == 0 and load_initial_expertdata is not None:
-            file = open(load_initial_expertdata, 'rb')
+        if itr == 0 and initial_expertdata is not None:
+            file = open(initial_expertdata, 'rb')
             loaded_paths = pickle.load(file)
             file.close()
             return loaded_paths, 0, None
         
         envsteps_this_batch = 0
         paths = []
-        while envsteps_this_batch <= batch_size:
+        while envsteps_this_batch <= num_transitions_to_sample:
             paths_this_batch, timesteps_this_batch = utils.sample_trajectories(self.env, collect_policy, 
-                max((batch_size - envsteps_this_batch) // self.params['ep_len'], 1), self.params['ep_len'])
+                                                                               max((num_transitions_to_sample - envsteps_this_batch) // self.params['ep_len'], 1), self.params['ep_len'])
             paths.extend(paths_this_batch)
             envsteps_this_batch += timesteps_this_batch
 
         train_video_paths = None
-        if self.log_video:
+        if save_expert_data_to_disk:
             print('\nCollecting train rollouts to be used for saving videos...')
             train_video_paths = utils.sample_n_trajectories(self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
 
