@@ -5,7 +5,7 @@ from cs285.models.base_model import BaseModel
 from cs285.infrastructure.utils import normalize, unnormalize
 from cs285.infrastructure import pytorch_util as ptu
 
-
+ 
 class FFModel(nn.Module, BaseModel):
 
     def __init__(self, ac_dim, ob_dim, n_layers, size, learning_rate=0.001):
