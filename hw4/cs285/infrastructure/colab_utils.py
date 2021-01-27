@@ -24,3 +24,5 @@ def show_video():
 def wrap_env(env):
   env = Monitor(env, '/content/video', force=True)
   return env
+
+##
