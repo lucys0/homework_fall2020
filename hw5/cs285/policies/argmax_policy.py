@@ -17,8 +17,11 @@ class ArgMaxPolicy(object):
         else:
             observation = obs[None]
 
-        raise NotImplementedError
         # TODO: get this from hw3
+        q_values = self.critic.qa_values(observation)
+        action = q_values.max(1)
+
+        return action.squeeze()
 
     ####################################
     ####################################
