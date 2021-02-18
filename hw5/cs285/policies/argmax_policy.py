@@ -19,7 +19,7 @@ class ArgMaxPolicy(object):
 
         # TODO: get this from hw3
         q_values = self.critic.qa_values(observation)
-        action = q_values.max(1)
+        action = q_values.argmax(1)
 
         return action.squeeze()
 

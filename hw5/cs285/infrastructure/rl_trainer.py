@@ -217,8 +217,47 @@ class RL_Trainer(object):
             envsteps_this_batch: the sum over the numbers of environment steps in paths
             train_video_paths: paths which also contain videos for visualization purposes
         """
-        raise NotImplementedError
         # TODO: get this from hw1 or hw2
+        paths: List[PathDict]
+
+        # Decide whether to load training data or use the current policy to collect more data
+        # HINT: depending on if it's the first iteration or not, decide whether to either
+        # (1) load the data. In this case you can directly return as follows
+        # ``` return loaded_paths, 0, None ```
+
+        # (2) collect `self.params['batch_size']` transitions
+
+        # Collect `batch_size` samples to be used for training
+        # HINT1: use sample_trajectories from utils
+        # HINT2: you want each of these collected rollouts to be of length self.params['ep_len']
+        print("\nCollecting data to be used for training...")
+        if itr == 0 and load_initial_expertdata is not None:
+            with open(load_initial_expertdata, 'rb') as paths_file:
+                loaded_paths = pickle.load(paths_file)
+            paths, envsteps_this_batch = loaded_paths, 0
+        else:
+            envsteps_this_batch = 0
+            paths = []
+            while envsteps_this_batch <= num_transitions_to_sample:
+                paths.extend(utils.sample_n_trajectories(
+                    self.env,
+                    collect_policy,
+                    max((num_transitions_to_sample - envsteps_this_batch)
+                        // self.params['ep_len'], 1),
+                    max_path_length=self.params['ep_len'],
+                ))
+                envsteps_this_batch = sum(
+                    path['observation'].shape[0] for path in paths)
+
+        # collect more rollouts with the same policy, to be saved as videos in tensorboard
+        # note: here, we collect MAX_NVIDEO rollouts, each of length MAX_VIDEO_LEN
+        train_video_paths = None
+        if self.log_video:
+            print('\nCollecting train rollouts to be used for saving videos...')
+            train_video_paths = utils.sample_n_trajectories(
+                self.env, collect_policy, MAX_NVIDEO, MAX_VIDEO_LEN, True)
+
+        return paths, envsteps_this_batch, train_video_paths
 
     ####################################
     ####################################
@@ -247,10 +286,13 @@ class RL_Trainer(object):
         last_log = all_logs[-1]
 
         episode_rewards = get_wrapper_by_name(self.env, "Monitor").get_episode_rewards()
+        print("0: ", len(episode_rewards)) #added
         if len(episode_rewards) > 0:
             self.mean_episode_reward = np.mean(episode_rewards[-100:])
+            print("1: ", self.mean_episode_reward)  # added
         if len(episode_rewards) > 100:
             self.best_mean_episode_reward = max(self.best_mean_episode_reward, self.mean_episode_reward)
+            print("2: ", self.mean_episode_reward)  # added
 
         logs = OrderedDict()
 
